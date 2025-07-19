@@ -9,8 +9,17 @@ from typing_extensions import TypedDict
 from langgraph.graph import StateGraph,START,END
 from langgraph.graph.message import add_messages
 
-st.set_page_config(page_title="Image + Text Uploader", layout="centered")
-st.title("🖼️ Upload an Image and Add Text")
+st.set_page_config(
+    page_title="📸 Smart Event Post Generator",
+    layout="wide",
+    initial_sidebar_state="collapsed"
+)
+# --- Title & Description ---
+st.markdown("<h1 style='text-align: center;'>📸 Smart Event Post Generator</h1>", unsafe_allow_html=True)
+st.markdown(
+    "<p style='text-align: center; font-size:18px;'>Generate a professional LinkedIn post from an event image and text input</p><br>",
+    unsafe_allow_html=True
+)
 
 # Load variables from .env file into environment
 load_dotenv()
@@ -39,10 +48,18 @@ class State(TypedDict):
   combined_content:str
   result:str
 
-# File uploader
-uploaded_file = st.file_uploader("Upload a PNG or JPG image", type=["png", "jpg", "jpeg"])
-# Optional user text input
-user_text = st.text_area("Optional: Add some text related to the image", height=150)
+# # File uploader
+# uploaded_file = st.file_uploader("Upload a PNG or JPG image", type=["png", "jpg", "jpeg"])
+# # Optional user text input
+# user_text = st.text_area("Optional: Add some text related to the image", height=150)
+
+st.subheader("📤 Upload Section")
+
+col1, col2 = st.columns([1, 2])
+with col1:
+    uploaded_file = st.file_uploader("Upload a PNG or JPG image", type=["png", "jpg", "jpeg"])
+with col2:
+    user_text = st.text_area("✏️ Add additional context or event description (optional)", height=150)
 
 
 image_path="aws-event/assets/2.jpg"
@@ -54,7 +71,7 @@ def user_input_node(state:State) -> State:
 
 def get_texts_and_labels_node(state:State) -> State:
     if uploaded_file is not None:
-        
+
         detected_text = get_detected_text(image_bytes)
         detected_label = get_detected_label(image_bytes)
 
@@ -82,9 +99,9 @@ def content_generation_node(state:State) -> State:
     Details:
     {state['combined_content']}
     """
-
-    response = llm.invoke(llm_prompt)
-    state['result'] = response.content
+    with st.spinner("🧠 Generating LinkedIn post..."):
+        response = llm.invoke(llm_prompt)
+        state['result'] = response.content
     return state
 
 builder = StateGraph(State)
@@ -122,8 +139,17 @@ initial_state = {
 
 if uploaded_file:
     result = graph.invoke(initial_state)
-    st.title("🔵 Final Content:")
-    st.write(result["result"])
+
+    st.markdown("---")
+    st.markdown("### ✅ Generated LinkedIn Post", unsafe_allow_html=True)
+    st.success("Here's your ready-to-use post:")
+
+    st.code(result["result"], language="markdown")
+
+    st.markdown("---")
+    st.markdown("✨ *You can copy and paste this directly into LinkedIn. Feel free to customize it further!*")
+
+    
 else:
     st.warning("Please upload an image to generate content.")
 
